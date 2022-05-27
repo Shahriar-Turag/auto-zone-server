@@ -11,14 +11,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.txqnyb6.mongodb.net/?retryWrites=true&w=majority`;
-
-const client = new MongoClient(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverApi: ServerApiVersion.v1,
-});
-
 function verifyJWT(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -34,6 +26,14 @@ function verifyJWT(req, res, next) {
     });
 }
 
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.txqnyb6.mongodb.net/?retryWrites=true&w=majority`;
+
+const client = new MongoClient(uri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverApi: ServerApiVersion.v1,
+});
+
 async function run() {
     try {
         await client.connect();
@@ -41,14 +41,25 @@ async function run() {
         const ordersCollection = client.db("autoZone").collection("orders");
         const userCollection = client.db("autoZone").collection("users");
 
-        app.put("/user/admin/:email", async (req, res) => {
+        app.put("/user/admin/:email", verifyJWT, async (req, res) => {
             const email = req.params.email;
-            const filter = { email: email };
-            const updateDoc = {
-                $set: { role: "admin" },
-            };
-            const result = await userCollection.updateOne(filter, updateDoc);
-            res.send(result);
+            const requester = req.decoded.email;
+            const requesterAccount = await userCollection.findOne({
+                email: requester,
+            });
+            if (requesterAccount.role === "admin") {
+                const filter = { email: email };
+                const updateDoc = {
+                    $set: { role: "admin" },
+                };
+                const result = await userCollection.updateOne(
+                    filter,
+                    updateDoc
+                );
+                res.send(result);
+            } else {
+                res.status(403).send("Forbidden");
+            }
         });
 
         app.put("/user/:email", async (req, res) => {
@@ -77,6 +88,13 @@ async function run() {
             res.send(users);
         });
 
+        app.get("/admin/:email", async (req, res) => {
+            const email = req.params.email;
+            const user = await userCollection.findOne({ email: email });
+            const isAdmin = user.role === "admin";
+            res.send({ admin: isAdmin });
+        });
+
         // get all products
         app.get("/products", async (req, res) => {
             const query = {};
@@ -93,17 +111,17 @@ async function run() {
             res.send(product);
         });
         // get all orders
-        app.get("/orders", async (req, res) => {
+        app.get("/orders", verifyJWT, async (req, res) => {
             const email = req.query.email;
-            // const decodedEmail = req.decoded.email;
-            // if (email === decodedEmail) {
-            const query = { email: email };
-            const cursor = ordersCollection.find(query);
-            const orders = await cursor.toArray();
-            return res.send(orders);
-            // } else {
-            //     return res.status(403).send("Forbidden");
-            // }
+            const decodedEmail = req.decoded.email;
+            if (email === decodedEmail) {
+                const query = { email: email };
+                const cursor = ordersCollection.find(query);
+                const orders = await cursor.toArray();
+                return res.send(orders);
+            } else {
+                return res.status(403).send("Forbidden");
+            }
         });
 
         app.get("/orders/:id", async (req, res) => {
