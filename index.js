@@ -38,6 +38,7 @@ async function run() {
     try {
         await client.connect();
         const productsCollection = client.db("autoZone").collection("products");
+        const categoryCollection = client.db("autoZone").collection("category");
         const ordersCollection = client.db("autoZone").collection("orders");
         const userCollection = client.db("autoZone").collection("users");
 
@@ -60,6 +61,13 @@ async function run() {
             } else {
                 res.status(403).send("Forbidden");
             }
+        });
+
+        app.get("/admin/:email", async (req, res) => {
+            const email = req.params.email;
+            const user = await userCollection.findOne({ email: email });
+            const isAdmin = user.role === "admin";
+            res.send({ admin: isAdmin });
         });
 
         app.put("/user/:email", async (req, res) => {
@@ -88,19 +96,21 @@ async function run() {
             res.send(users);
         });
 
-        app.get("/admin/:email", async (req, res) => {
-            const email = req.params.email;
-            const user = await userCollection.findOne({ email: email });
-            const isAdmin = user.role === "admin";
-            res.send({ admin: isAdmin });
-        });
-
         // get all products
         app.get("/products", async (req, res) => {
             const query = {};
-            const cursor = productsCollection.find(query);
+            const cursor = productsCollection
+                .find(query)
+                .project({ category: 4 });
             const products = await cursor.toArray();
             res.send(products);
+        });
+        // post new product
+        app.post("/products", verifyJWT, async (req, res) => {
+            const newProduct = req.body;
+            const result = await productsCollection.insertOne(newProduct);
+            res.send(result);
+            console.log(newProduct);
         });
 
         // get product by id
