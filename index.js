@@ -144,7 +144,7 @@ async function run() {
             res.send(product);
         });
         //get all orders
-        app.get("/myOrders", verifyJWT, async (req, res) => {
+        app.get("/orders", verifyJWT, async (req, res) => {
             const email = req.query.email;
             const decodedEmail = req.decoded.email;
             if (email === decodedEmail) {
@@ -156,12 +156,12 @@ async function run() {
                 return res.status(403).send("Forbidden");
             }
         });
-        app.get("/orders", async (req, res) => {
-            const query = {};
-            const cursor = ordersCollection.find(query);
-            const orders = await cursor.toArray();
-            res.send(orders);
-        });
+        // app.get("/orders", async (req, res) => {
+        //     const query = {};
+        //     const cursor = ordersCollection.find(query);
+        //     const orders = await cursor.toArray();
+        //     res.send(orders);
+        // });
 
         app.get("/orders/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
