@@ -166,7 +166,7 @@ async function run() {
         //     // }
         // });
 
-        // delete an order
+        // delete a product
 
         app.delete(
             "/products/:id",
