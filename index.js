@@ -3,9 +3,9 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 const app = express();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 //middleware
 
@@ -42,6 +42,7 @@ async function run() {
         const ordersCollection = client.db("autoZone").collection("orders");
         const userCollection = client.db("autoZone").collection("users");
         const paymentsCollection = client.db("autoZone").collection("payments");
+        const reviewCollection = client.db("autoZone").collection("review");
 
         const verifyAdmin = async (req, res, next) => {
             const requester = req.decoded.email;
@@ -108,8 +109,8 @@ async function run() {
 
         // payment routes
         app.post("/create-payment-intent", verifyJWT, async (req, res) => {
-            const orders = req.body;
-            const price = orders.price;
+            const products = req.body;
+            const price = products.price;
             const amount = price * 100;
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
@@ -171,6 +172,7 @@ async function run() {
 
         app.patch("/orders/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
+            const payment = req.body;
             const query = { _id: ObjectId(id) };
             const updatedDoc = {
                 $set: {
@@ -185,20 +187,6 @@ async function run() {
             );
             res.send(updatedDoc);
         });
-
-        // filter my orders
-
-        // app.post("/myOrders", async (req, res) => {
-        //     // const decodedEmail = req.decoded.email;
-        //     // if (email === decodedEmail) {
-        //     const author = req.body?.author;
-        //     const query = { email: author };
-        //     const myOrders = await ordersCollection.find(query).toArray();
-        //     return res.send(myOrders);
-        //     // } else {
-        //     //     return res.status(403).send("Forbidden");
-        //     // }
-        // });
 
         // delete a product
 
@@ -221,6 +209,19 @@ async function run() {
             const query = { _id: ObjectId(id) };
             const result = await ordersCollection.deleteOne(query);
             res.send(result);
+        });
+
+        //add a review
+        app.post("/reviews", async (req, res) => {
+            const review = req.body;
+            const result = await reviewCollection.insertOne(review);
+            res.send(result);
+        });
+        // get all review
+        app.get("/reviews", async (req, res) => {
+            const cursor = reviewCollection.find({});
+            const reviews = await cursor.toArray();
+            res.send(reviews);
         });
     } finally {
         // await client.close();
