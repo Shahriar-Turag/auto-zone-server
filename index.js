@@ -38,17 +38,27 @@ async function run() {
     try {
         await client.connect();
         const productsCollection = client.db("autoZone").collection("products");
-        const categoryCollection = client.db("autoZone").collection("category");
         const ordersCollection = client.db("autoZone").collection("orders");
         const userCollection = client.db("autoZone").collection("users");
 
-        app.put("/user/admin/:email", verifyJWT, async (req, res) => {
-            const email = req.params.email;
+        const verifyAdmin = async (req, res, next) => {
             const requester = req.decoded.email;
             const requesterAccount = await userCollection.findOne({
                 email: requester,
             });
             if (requesterAccount.role === "admin") {
+                next();
+            } else {
+                res.status(403).send("Forbidden");
+            }
+        };
+
+        app.put(
+            "/user/admin/:email",
+            verifyJWT,
+            verifyAdmin,
+            async (req, res) => {
+                const email = req.params.email;
                 const filter = { email: email };
                 const updateDoc = {
                     $set: { role: "admin" },
@@ -58,10 +68,8 @@ async function run() {
                     updateDoc
                 );
                 res.send(result);
-            } else {
-                res.status(403).send("Forbidden");
             }
-        });
+        );
 
         app.get("/admin/:email", async (req, res) => {
             const email = req.params.email;
@@ -99,18 +107,15 @@ async function run() {
         // get all products
         app.get("/products", async (req, res) => {
             const query = {};
-            const cursor = productsCollection
-                .find(query)
-                .project({ category: 4 });
+            const cursor = productsCollection.find(query);
             const products = await cursor.toArray();
             res.send(products);
         });
         // post new product
-        app.post("/products", verifyJWT, async (req, res) => {
+        app.post("/products", verifyJWT, verifyAdmin, async (req, res) => {
             const newProduct = req.body;
             const result = await productsCollection.insertOne(newProduct);
             res.send(result);
-            console.log(newProduct);
         });
 
         // get product by id
