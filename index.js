@@ -43,6 +43,7 @@ async function run() {
         const userCollection = client.db("autoZone").collection("users");
         const paymentsCollection = client.db("autoZone").collection("payments");
         const reviewCollection = client.db("autoZone").collection("review");
+        const infoCollection = client.db("autoZone").collection("info");
 
         const verifyAdmin = async (req, res, next) => {
             const requester = req.decoded.email;
@@ -179,7 +180,7 @@ async function run() {
         app.patch("/orders/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
             const payment = req.body;
-            const options = { upsert: true };
+
             const query = { _id: ObjectId(id) };
             const updatedDoc = {
                 $set: {
@@ -244,6 +245,36 @@ async function run() {
             const reviews = await cursor.toArray();
             res.send(reviews);
         });
+
+        //post profile info
+        app.post("/info", async (req, res) => {
+            const review = req.body;
+            const result = await infoCollection.insertOne(review);
+            res.send(result);
+        });
+        // get info
+        app.get("/info", async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const cursor = await infoCollection.find(query);
+            const info = await cursor.toArray();
+            res.send(info);
+        });
+
+        // update profile
+        // app.put("/profile/:id", async (req, res) => {
+        //     const id = req.params.id;
+        //     const profile = req.body;
+        //     const query = { _id: ObjectId(id) };
+        //     const options = { upsert: true };
+        //     const updateStatus = { $set: { status: "paid" } };
+        //     const result = await ordersCollection.updateOne(
+        //         query,
+        //         updateStatus,
+        //         options
+        //     );
+        //     res.json(result);
+        // });
     } finally {
         // await client.close();
     }
