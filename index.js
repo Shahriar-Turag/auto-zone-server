@@ -156,12 +156,12 @@ async function run() {
                 return res.status(403).send("Forbidden");
             }
         });
-        // app.get("/orders", async (req, res) => {
-        //     const query = {};
-        //     const cursor = ordersCollection.find(query);
-        //     const orders = await cursor.toArray();
-        //     res.send(orders);
-        // });
+        app.get("/allOrders", verifyJWT, async (req, res) => {
+            const query = {};
+            const cursor = ordersCollection.find(query);
+            const orders = await cursor.toArray();
+            res.send(orders);
+        });
 
         app.get("/orders/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
@@ -179,6 +179,7 @@ async function run() {
         app.patch("/orders/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
             const payment = req.body;
+            const options = { upsert: true };
             const query = { _id: ObjectId(id) };
             const updatedDoc = {
                 $set: {
@@ -192,6 +193,20 @@ async function run() {
                 updatedDoc
             );
             res.send(updatedDoc);
+        });
+
+        //approve order
+        app.put("/orders/status/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateStatus = { $set: { status: "paid" } };
+            const result = await ordersCollection.updateOne(
+                query,
+                updateStatus,
+                options
+            );
+            res.json(result);
         });
 
         // delete a product
