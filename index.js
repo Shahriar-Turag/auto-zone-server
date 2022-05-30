@@ -223,6 +223,23 @@ async function run() {
                 res.send(result);
             }
         );
+        //update a product
+        app.put("/products/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const newQuantity = req.body.updatedQuantity;
+            const newPrice = req.body.updatedPrice;
+            const result = await productsCollection.updateOne(
+                query,
+                {
+                    $set: { availableQty: newQuantity, price: newPrice },
+                },
+                options
+            );
+            res.send(result);
+            console.log(newPrice);
+        });
 
         // delete an order
 
@@ -259,22 +276,39 @@ async function run() {
             const cursor = await infoCollection.find(query);
             const info = await cursor.toArray();
             res.send(info);
+            console.log(cursor);
         });
 
         // update profile
-        // app.put("/profile/:id", async (req, res) => {
-        //     const id = req.params.id;
-        //     const profile = req.body;
-        //     const query = { _id: ObjectId(id) };
-        //     const options = { upsert: true };
-        //     const updateStatus = { $set: { status: "paid" } };
-        //     const result = await ordersCollection.updateOne(
-        //         query,
-        //         updateStatus,
-        //         options
-        //     );
-        //     res.json(result);
-        // });
+        app.put("/info", async (req, res) => {
+            const email = req.query.email;
+
+            const query = { email: email };
+            const options = { upsert: true };
+            const newLivesIn = req.body.updatedLivesIn;
+            const newStudyIn = req.body.updatedStudyIn;
+            const newPhone = req.body.updatedPhone;
+            const newLinkedIn = req.body.updatedLinkedIn;
+            const newGithub = req.body.updatedGithub;
+            const newFacebook = req.body.updatedFacebook;
+            const result = await infoCollection.updateOne(
+                query,
+                {
+                    $set: {
+                        livesIn: newLivesIn,
+                        studyIn: newStudyIn,
+                        phone: newPhone,
+                        linkedIn: newLinkedIn,
+                        github: newGithub,
+                        facebook: newFacebook,
+                    },
+                },
+
+                options
+            );
+            res.json(result);
+            console.log(newLivesIn);
+        });
     } finally {
         // await client.close();
     }
