@@ -144,6 +144,12 @@ async function run() {
             const product = await productsCollection.findOne(query);
             res.send(product);
         });
+        app.get("/products/:category", async (req, res) => {
+            const category = req.query.category;
+            const query = { category: category };
+            const product = await productsCollection.findOne(query);
+            res.send(product);
+        });
         //get all orders
         app.get("/orders", verifyJWT, async (req, res) => {
             const email = req.query.email;
@@ -233,12 +239,15 @@ async function run() {
             const result = await productsCollection.updateOne(
                 query,
                 {
-                    $set: { availableQty: newQuantity, price: newPrice },
+                    $set: {
+                        availableQty: newQuantity,
+                        price: newPrice,
+                    },
                 },
                 options
             );
+            console.log(id);
             res.send(result);
-            console.log(newPrice);
         });
 
         // delete an order
